@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/fuchidahiro/radixTreeResearch/issues"
   },
-  "homepage": "https://github.com/fuchidahiro/radixTreeResearch#readme"
+  "homepage": "https://github.com/fuchidahiro/radixTreeResearch#readme",
+  "dependencies": {
+    "gun": "^0.9.997"
+  }
 }
