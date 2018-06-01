@@ -14,4 +14,4 @@ var writeRand = function() {
   app.get(Gun.text.random()).put({name:"name"})
 }
 
-setInterval(writeRand, 1)
+setInterval(writeRand, 10)
