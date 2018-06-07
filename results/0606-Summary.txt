@@ -1,0 +1,37 @@
+Error killed process
+  "Maximum Call Stack Size Exceeded"
+
+https://stackoverflow.com/questions/6095530/maximum-call-stack-size-exceeded-error/10273948
+Recursive Functions cause stack overflow, which shutdown js.
+Which function caused the shutdown?
+  Error occured on two stacks
+    (1)
+  internal/async_hooks.js:131
+< function emitInitNative(asyncId, type, triggerAsyncId, resource) {
+<                        ^
+< RangeError: Maximum call stack size exceeded
+<     at FSReqWrap.emitInitNative (internal/async_hooks.js:131:24)
+<     at Object.fs.readdir (fs.js:881:15)
+<     at Function.Store.store.list (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/store.js:82:6)
+<     at Function.Radisk.r.read (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/radisk.js:209:13)
+<     at r (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/radisk.js:48:13)
+<     at Object.next (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/store.js:40:3)
+<     at Object.onto [as on] (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:203:41)
+<     at Function.Gun.on.get (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:814:35)
+<     at Object.root [as next] (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:711:14)
+<     at Object.next (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/nts.js:17:20)
+    (2)
+    fs.js:881
+  <   const req = new FSReqWrap();
+  <               ^
+  < RangeError: Maximum call stack size exceeded
+  <     at Object.fs.readdir (fs.js:881:15)
+  <     at Function.Store.store.list (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/store.js:82:6)
+  <     at Function.Radisk.r.read (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/radisk.js:209:13)
+  <     at r (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/radisk.js:48:13)
+  <     at Object.next (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/store.js:40:3)
+  <     at Object.onto [as on] (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:203:41)
+  <     at Function.Gun.on.get (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:814:35)
+  <     at Object.root [as next] (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/gun.js:711:14)
+  <     at Object.next (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/nts.js:17:20)
+  <     at Object.next (/Users/Jachen/Documents/GitHub/radixTreeResearch/node_modules/gun/lib/bye.js:11:45)

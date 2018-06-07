@@ -2,7 +2,7 @@ var Gun = require('gun')
 var gun = Gun({
   localStorage: false,
   file: './radata/',
-  until: 10000
+  until: 1
 })
 
 var now = new Date()
@@ -14,4 +14,4 @@ var writeRand = function() {
   app.get(Gun.text.random()).put({name:"name"})
 }
 
-setInterval(writeRand, 10)
+setInterval(writeRand, 1)
