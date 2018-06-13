@@ -1,7 +1,6 @@
 var Gun = require('gun')
 var gun = Gun({
-  localStorage: false,
-  file: './radata/',
+  radisk: false,
   until: 1
 })
 
@@ -14,4 +13,9 @@ var writeRand = function() {
   app.get(Gun.text.random()).put({name:"name"})
 }
 
-setInterval(writeRand, 1)
+let i = 10
+
+while(i>=0){
+  writeRand()
+  i--
+}
