@@ -24,7 +24,7 @@ var writeRand = function(timer, hr) {
     console.log(`at ${diff}`);
     hr = now
   }
-  if(t>=1000000){
+  if(t>=10){
     clearInterval(timer)
   }
 }
@@ -34,5 +34,5 @@ var l = 0
 var hr = process.uptime()
 
 console.log(`starting writes ${process.hrtime()}`);
-var timer = setInterval(writeRand, 1, timer, hr)
+var timer = setInterval(writeRand, 1000, timer, hr)
 console.log(`ending writes ${process.hrtime()}`);
