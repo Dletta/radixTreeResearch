@@ -16,12 +16,12 @@ var storage = Object(null)
 
 gun._.opt.store = {};
 gun._.opt.store.put = function(file, data, cb){
-	console.log(`put with ${file}, data ${data}, callback ${cb}`);
+	console.log(`put with ${file}, data ${data}, callback`);
 	storage[file] = data
 	cb(undefined, 1)
 }
 gun._.opt.store.get = function(file, cb){
-	console.log(`get with ${file}, callback ${cb}`);
+	console.log(`get with ${file}, callback`);
 	var temp = storage[file] || undefined
 	console.log(`Found ${file}: ${temp}`);
 	cb(temp)
@@ -30,7 +30,7 @@ gun._.opt.store.list = function(cb){
 	console.log(`list with callback`);
 	var arr = []
 	console.log(`Listed ${Object.entries(storage)[0]}`);
-	arr = Object.entries(storage)[0] 
+	arr = Object.entries(storage)[0]
 	if(arr){
 		for(var i=0;i<arr.length;i++){
 			cb(arr[i])
@@ -39,6 +39,7 @@ gun._.opt.store.list = function(cb){
 	cb()
 }
 gun._.opt.chunk = 32
+
 
 var temp = document.getElementById('output');
 
@@ -82,7 +83,7 @@ var map = Gun.obj.map, no = {}, u;
 				if(u === val){
 					return tmp;
 				}
-			} else 
+			} else
 			if(i == l){
 				if(u === val){ return (u === (tmp = at[$]))? at[_] : tmp }
 				at[$] = val;
@@ -92,13 +93,13 @@ var map = Gun.obj.map, no = {}, u;
 		}
 		return radix;
 	};
-	Radix.map = function map(radix, cb, opt, pre){ pre = pre || []; 
+	Radix.map = function map(radix, cb, opt, pre){ pre = pre || [];
 		var t = radix[_] || radix, keys = Object.keys(t).sort(), i = 0, l = keys.length;
 		for(;i < l; i++){ var key = keys[i], tree = t[key], tmp;
 			if(u !== (tmp = tree[$])){
 				tmp = cb(tmp, pre.join('') + key, key, pre);
 				if(u !== tmp){ return tmp }
-			} else 
+			} else
 			if(opt){
 				cb(u, pre.join(''), key, pre);
 			}
@@ -112,10 +113,11 @@ var map = Gun.obj.map, no = {}, u;
 	};
 
 Object.keys = Object.keys || function(o){ return map(o, function(v,k,t){t(k)}) }
-
 function Radisk(opt){
-
-	opt = opt || {};
+/*Gun.on('create', function(root){
+	this.to.next(root)*/
+	var opt = /*root.*/opt || {};
+	/*if(root.once){return}*/
 	opt.file = String(opt.file || 'radata');
 	opt.until = opt.until || opt.wait || 1000; // default for HDDs
 	opt.batch = opt.batch || 10 * 1000;
@@ -415,7 +417,7 @@ function Radisk(opt){
 			if(p){
 				if(s === c){
 					if(--n <= 0){
-						break;	
+						break;
 					}
 				}
 				d += c;
@@ -446,12 +448,13 @@ function Radisk(opt){
 			return false;
 		}
 	}
+/*})*/
 
 Radisk.Radix = Radix;
 var radisk = Radisk(gun._.opt);
 radisk.Radix = Radix()
- radisk.Radix('app', 'name')
 
+radisk.Radix('app', 'name')
 radisk.Radix('appropriate','name')
 radisk.Radix('button','name')
 radisk.Radix('buttox','name')
