@@ -11,48 +11,6 @@ Div<div id="output"></div>
 </body>
 <script>
 localStorage.clear()
-Gun.on('create', (data)=>{console.log('create called '+data)})
-var peers = []
-var gun = Gun({peers:peers,localStorage:false})
-
-var storage = Object(null)
-gun._.opt.store = {};
-gun._.opt.store.put = function(file, data, cb){
-	console.log(`put with ${file}, data ${data}, callback`);
-	storage[file] = data
-	cb(undefined, 1)
-}
-gun._.opt.store.get = function(file, cb){
-	console.log(`get with ${file}, callback`);
-	var temp = storage[file] || undefined
-	console.log(`Found ${file}: ${temp}`);
-	cb(temp)
-}
-gun._.opt.store.list = function(cb){
-	console.log(`list with callback`);
-	var arr= [];
-	console.log(`Listed ${Object.entries(storage)[0]}`);
-	arr = Object.entries(storage)[0];
-	if(arr) {
-		var i = 0;
-		var l = arr.length;
-		for(i;i<l;i++){
-			if(cb(arr[i])){
-				break;
-			}
-		}
-	}
-	cb()
-}
-
-gun._.opt.chunk = 32
-
-
-var temp = document.getElementById('output');
-
-var app = gun.get('app').put({name:'app', type:'root'})
-
-gun.get('app').on((node)=>{temp.innerHTML = JSON.stringify(node);console.log(node);}, true)
 
 var map = Gun.obj.map, no = {}, u;
 
@@ -122,6 +80,7 @@ var map = Gun.obj.map, no = {}, u;
 Object.keys = Object.keys || function(o){ return map(o, function(v,k,t){t(k)}) }
 
 function Radisk(opt){
+	console.log('radisk instantiated');
 	var opt = opt || {};
 	opt.file = String(opt.file || 'radata');
 	opt.until = opt.until || opt.wait || 1000; // default for HDDs
@@ -135,7 +94,9 @@ function Radisk(opt){
 	if(!opt.store){
 		return Gun.log("ERROR: Radisk needs `opt.store` interface with `{get: fn, put: fn, list: fn}`!");
 	}
+	console.log(JSON.stringify(opt.store.put));
 	if(!opt.store.put){
+
 		return Gun.log("ERROR: Radisk needs `store.put` interface with `(file, data, cb)`!");
 	}
 	if(!opt.store.get){
@@ -271,7 +232,7 @@ function Radisk(opt){
 			}
 			f.text += enc;
 		}
-		f.write = function(){ opt.store.put(ename(file), f.text, cb) }
+		f.write = function(){ console.log('writing to storage');opt.store.put(ename(file), f.text, cb) }
 		f.slice = function(val, key){
 			if(key < f.file){ return }
 			if(f.limit < (++f.count)){
@@ -454,128 +415,109 @@ function Radisk(opt){
 		}
 	}
 
-	Gun.on('opt', function(ctx){
-		this.to.next(ctx);
-		var opt = ctx.opt;
-		if(ctx.once){ return }
-		if(false !== opt.localStorage && !process.env.AWS_S3_BUCKET){ return } // TODO: Remove this after migration.
-		if(false === opt.radisk){ return }
-		console.log("BUG WARNING: Radix Storage Engine (RAD) has a known rare edge case, if data gets split between file chunks, a GET may only return the first chunk!!!");
-		opt.store = opt.store || Store(opt);
-		var rad = Radisk(opt);
+function Store(opt){
+	opt = opt || {};
+	opt.file = String(opt.file || 'radata');
 
-		ctx.on('put', function(at){
-			this.to.next(at);
-			var id = at['#'], track = !at['@'], acks = track? 0 : u; // only ack non-acks.
-			Gun.graph.is(at.put, null, function(val, key, node, soul){
-				if(track){ ++acks }
-				val = Radisk.encode(val)+'>'+Radisk.encode(Gun.state.is(node, key));
-				rad(soul+'.'+key, val, (track? ack : u));
-			});
-			function ack(err, ok){
-				acks--;
-				if(ack.err){ return }
-				if(ack.err = err){
-					ctx.on('in', {'@': id, err: Gun.log(err)});
-					return;
+	var store = function Store(){};
+	store.put = function(file, data, cb){
+		console.log(`put with ${file}, data ${data}, callback`);
+		storage[file] = data
+		cb(undefined, 1)
+	};
+	store.get = function(file, cb){
+		console.log(`get with ${file}, callback`);
+		var temp = storage[file] || undefined
+		console.log(`Found ${file}: ${temp}`);
+		cb(temp)
+	};
+	store.list = function(cb, match){
+		console.log(`list with callback`);
+		var arr= [];
+		console.log(`Listed ${Object.entries(storage)[0]}`);
+		arr = Object.entries(storage)[0];
+		if(arr) {
+			var i = 0;
+			var l = arr.length;
+			for(i;i<l;i++){
+				if(cb(arr[i])){
+					break;
 				}
-				if(acks){ return }
-				ctx.on('in', {'@': id, ok: 1});
 			}
-		});
+		}
+		cb()
+	};
+	//store.list(function(){ return true });
+	return store;
+}
 
-		ctx.on('get', function(at){
-			this.to.next(at);
-			var id = at['#'], soul = at.get['#'], key = at.get['.']||'', tmp = soul+'.'+key, node;
-			rad(tmp, function(err, val){
-				if(val){
-					Radix.map(val, each);
-					if(!node){ each(val, key) }
-				}
-				ctx.on('in', {'@': id, put: Gun.graph.node(node), err: err? err : u});
-			});
-			function each(val, key){
-				tmp = val.lastIndexOf('>');
-				var state = Radisk.decode(val.slice(tmp+1));
-				val = Radisk.decode(val.slice(0,tmp));
-				node = Gun.state.ify(node, key, state, val, soul);
+Gun.on('opt', function(ctx){
+	console.log('opt called radisk instantiated');
+	this.to.next(ctx);
+	var opt = ctx.opt;
+	if(ctx.once){ return }
+	if(false !== opt.localStorage && !process.env.AWS_S3_BUCKET){ return } // TODO: Remove this after migration.
+	if(false === opt.radisk){ return }
+	console.log("BUG WARNING: Radix Storage Engine (RAD) has a known rare edge case, if data gets split between file chunks, a GET may only return the first chunk!!!");
+	opt.store = Store(opt);
+	var rad = Radisk(opt);
+
+	ctx.on('put', function(at){
+		console.log(`put fired with @:${JSON.stringify(at)}`);
+		this.to.next(at);
+		var id = at['#'], track = !at['@'], acks = track? 0 : u; // only ack non-acks.
+		Gun.graph.is(at.put, null, function(val, key, node, soul){
+			if(track){ ++acks }
+			val = Radisk.encode(val)+'>'+Radisk.encode(Gun.state.is(node, key));
+			rad(soul+'.'+key, val, (track? ack : u));
+		});
+		function ack(err, ok){
+			acks--;
+			if(ack.err){ return }
+			if(ack.err = err){
+				ctx.on('in', {'@': id, err: Gun.log(err)});
+				return;
 			}
-		});
-
+			if(acks){ return }
+			ctx.on('in', {'@': id, ok: 1});
+		}
 	});
 
-	function Store(opt){
-		opt = opt || {};
-		opt.file = String(opt.file || 'radata');
-
-		var store = function Store(){};
-		store.put = function(file, data, cb){
-			console.log(`put with ${file}, data ${data}, callback`);
-			storage[file] = data
-			cb(undefined, 1)
-		};
-		store.get = function(file, cb){
-			console.log(`get with ${file}, callback`);
-			var temp = storage[file] || undefined
-			console.log(`Found ${file}: ${temp}`);
-			cb(temp)
-		};
-		store.list = function(cb, match){
-			console.log(`list with callback`);
-			var arr = []
-			console.log(`Listed ${Object.entries(storage)[0]}`);
-			arr = Object.entries(storage)[0]
-			if(arr){
-				for(var i=0;i<arr.length;i++){
-					cb(arr[i])
-				}
+	ctx.on('get', function(at){
+		console.log(`get fired with @:${JSON.stringify(at)}`);
+		this.to.next(at);
+		var id = at['#'], soul = at.get['#'], key = at.get['.']||'', tmp = soul+'.'+key, node;
+		rad(tmp, function(err, val){
+			if(val){
+				Radix.map(val, each);
+				if(!node){ each(val, key) }
 			}
-			cb()
-		};
-
-		return store;
-	}
-
-	function move(oldPath, newPath, cb) {
-		fs.rename(oldPath, newPath, function (err) {
-			if (err) {
-				if (err.code === 'EXDEV') {
-					var readStream = fs.createReadStream(oldPath);
-					var writeStream = fs.createWriteStream(newPath);
-
-					readStream.on('error', cb);
-					writeStream.on('error', cb);
-
-					readStream.on('close', function () {
-						fs.unlink(oldPath, cb);
-					});
-
-					readStream.pipe(writeStream);
-				} else {
-					cb(err);
-				}
-			} else {
-				cb();
-			}
+			ctx.on('in', {'@': id, put: Gun.graph.node(node), err: err? err : u});
 		});
-	};
+		function each(val, key){
+			tmp = val.lastIndexOf('>');
+			var state = Radisk.decode(val.slice(tmp+1));
+			val = Radisk.decode(val.slice(0,tmp));
+			node = Gun.state.ify(node, key, state, val, soul);
+		}
+	});
 
-/*
-Radisk.Radix = Radix;
-var radisk = Radisk(gun);
-radisk.Radix = Radix()
+});
 
-radisk.Radix('app', 'name')
-radisk.Radix('appropriate','name')
-radisk.Radix('button','name')
-radisk.Radix('buttox','name')
-radisk.Radix('dog','name')
-radisk.Radix('dogfood','name')
-radisk.Radix('c','name')
-radisk.Radix('carl','name')
-radisk.Radix('car','name')
-radisk.Radix('carlsbad','name')
-*/
+
+var storage = Object(null);
+
+var peers = []
+
+var gun = Gun({peers:peers,localStorage:false/*, chunk: 512*/})
+
+var output = document.getElementById('output');
+
+var app = gun.get('app').put({name:'app', type:'root'})
+
+gun.get('app').on((node)=>{output.innerHTML = JSON.stringify(node);console.log(node);}, true)
+
+
 
 </script>
 </html>
