@@ -1,5 +1,6 @@
 <html>
 <header>
+	<meta name="Gun Test" charset="utf-8">
 <title>Gun Test</title>
 </header>
 <script src="https://cdn.rawgit.com/amark/gun/master/gun.js"></script>
@@ -10,10 +11,11 @@ Div<div id="output"></div>
 </body>
 <script>
 localStorage.clear()
+Gun.on('create', (data)=>{console.log('create called '+data)})
 var peers = []
-var gun = Gun(peers)
-var storage = Object(null)
+var gun = Gun({peers:peers,localStorage:false})
 
+var storage = Object(null)
 gun._.opt.store = {};
 gun._.opt.store.put = function(file, data, cb){
 	console.log(`put with ${file}, data ${data}, callback`);
@@ -28,16 +30,21 @@ gun._.opt.store.get = function(file, cb){
 }
 gun._.opt.store.list = function(cb){
 	console.log(`list with callback`);
-	var arr = []
+	var arr= [];
 	console.log(`Listed ${Object.entries(storage)[0]}`);
-	arr = Object.entries(storage)[0]
-	if(arr){
-		for(var i=0;i<arr.length;i++){
-			cb(arr[i])
+	arr = Object.entries(storage)[0];
+	if(arr) {
+		var i = 0;
+		var l = arr.length;
+		for(i;i<l;i++){
+			if(cb(arr[i])){
+				break;
+			}
 		}
 	}
 	cb()
 }
+
 gun._.opt.chunk = 32
 
 
@@ -113,11 +120,9 @@ var map = Gun.obj.map, no = {}, u;
 	};
 
 Object.keys = Object.keys || function(o){ return map(o, function(v,k,t){t(k)}) }
+
 function Radisk(opt){
-/*Gun.on('create', function(root){
-	this.to.next(root)*/
-	var opt = /*root.*/opt || {};
-	/*if(root.once){return}*/
+	var opt = opt || {};
 	opt.file = String(opt.file || 'radata');
 	opt.until = opt.until || opt.wait || 1000; // default for HDDs
 	opt.batch = opt.batch || 10 * 1000;
@@ -448,10 +453,116 @@ function Radisk(opt){
 			return false;
 		}
 	}
-/*})*/
 
+	Gun.on('opt', function(ctx){
+		this.to.next(ctx);
+		var opt = ctx.opt;
+		if(ctx.once){ return }
+		if(false !== opt.localStorage && !process.env.AWS_S3_BUCKET){ return } // TODO: Remove this after migration.
+		if(false === opt.radisk){ return }
+		console.log("BUG WARNING: Radix Storage Engine (RAD) has a known rare edge case, if data gets split between file chunks, a GET may only return the first chunk!!!");
+		opt.store = opt.store || Store(opt);
+		var rad = Radisk(opt);
+
+		ctx.on('put', function(at){
+			this.to.next(at);
+			var id = at['#'], track = !at['@'], acks = track? 0 : u; // only ack non-acks.
+			Gun.graph.is(at.put, null, function(val, key, node, soul){
+				if(track){ ++acks }
+				val = Radisk.encode(val)+'>'+Radisk.encode(Gun.state.is(node, key));
+				rad(soul+'.'+key, val, (track? ack : u));
+			});
+			function ack(err, ok){
+				acks--;
+				if(ack.err){ return }
+				if(ack.err = err){
+					ctx.on('in', {'@': id, err: Gun.log(err)});
+					return;
+				}
+				if(acks){ return }
+				ctx.on('in', {'@': id, ok: 1});
+			}
+		});
+
+		ctx.on('get', function(at){
+			this.to.next(at);
+			var id = at['#'], soul = at.get['#'], key = at.get['.']||'', tmp = soul+'.'+key, node;
+			rad(tmp, function(err, val){
+				if(val){
+					Radix.map(val, each);
+					if(!node){ each(val, key) }
+				}
+				ctx.on('in', {'@': id, put: Gun.graph.node(node), err: err? err : u});
+			});
+			function each(val, key){
+				tmp = val.lastIndexOf('>');
+				var state = Radisk.decode(val.slice(tmp+1));
+				val = Radisk.decode(val.slice(0,tmp));
+				node = Gun.state.ify(node, key, state, val, soul);
+			}
+		});
+
+	});
+
+	function Store(opt){
+		opt = opt || {};
+		opt.file = String(opt.file || 'radata');
+
+		var store = function Store(){};
+		store.put = function(file, data, cb){
+			console.log(`put with ${file}, data ${data}, callback`);
+			storage[file] = data
+			cb(undefined, 1)
+		};
+		store.get = function(file, cb){
+			console.log(`get with ${file}, callback`);
+			var temp = storage[file] || undefined
+			console.log(`Found ${file}: ${temp}`);
+			cb(temp)
+		};
+		store.list = function(cb, match){
+			console.log(`list with callback`);
+			var arr = []
+			console.log(`Listed ${Object.entries(storage)[0]}`);
+			arr = Object.entries(storage)[0]
+			if(arr){
+				for(var i=0;i<arr.length;i++){
+					cb(arr[i])
+				}
+			}
+			cb()
+		};
+
+		return store;
+	}
+
+	function move(oldPath, newPath, cb) {
+		fs.rename(oldPath, newPath, function (err) {
+			if (err) {
+				if (err.code === 'EXDEV') {
+					var readStream = fs.createReadStream(oldPath);
+					var writeStream = fs.createWriteStream(newPath);
+
+					readStream.on('error', cb);
+					writeStream.on('error', cb);
+
+					readStream.on('close', function () {
+						fs.unlink(oldPath, cb);
+					});
+
+					readStream.pipe(writeStream);
+				} else {
+					cb(err);
+				}
+			} else {
+				cb();
+			}
+		});
+	};
+
+/*
 Radisk.Radix = Radix;
-var radisk = Radisk(gun._.opt);
+var radisk = Radisk(gun);
 radisk.Radix = Radix()
 
 radisk.Radix('app', 'name')
@@ -464,7 +575,7 @@ radisk.Radix('c','name')
 radisk.Radix('carl','name')
 radisk.Radix('car','name')
 radisk.Radix('carlsbad','name')
-
+*/
 
 </script>
 </html>
