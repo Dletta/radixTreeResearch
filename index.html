@@ -436,16 +436,22 @@ function Store(opt){
 		var arr= [];
 		console.log(`Listed ${Object.entries(storage)[0]}`);
 		arr = Object.entries(storage)[0];
+		//add a flag for 'found a file' to not pass cb()
+		// or use Gun.map
+		// look at javascript .some() truthiness skip
+		var found = false;
 		if(arr) {
 			var i = 0;
 			var l = arr.length;
 			for(i;i<l;i++){
 				if(cb(arr[i])){
+					found = true
 					break;
 				}
 			}
 		}
-		cb()
+		if(!found) {cb()}
+		found = false
 	};
 	//store.list(function(){ return true });
 	return store;
