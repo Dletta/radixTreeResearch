@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/fuchidahiro/radixTreeResearch#readme",
   "dependencies": {
-    "gun": "^0.2019.612"
+    "gun": "^0.2020.1239"
   }
 }
